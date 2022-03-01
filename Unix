@@ -1,0 +1,294 @@
+
+1. enable root login to ec2
+   sudo vi /etc/ssh/sshd_config
+   Replace the line
+   PermitRootLogin forced-commands-only
+   with
+   PermitRootLogin without-password
+   then save the file and reload sshd config.
+   sudo /etc/init.d/sshd reload
+   Step 2: Disable blocking command for root account
+   sudo vi /root/.ssh/authorized_keys
+   You will see something like command="echo 'Please login as the ec2-user user rather than rootuser.';echo;sleep10"    ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDTctyMQwAPXDqlOfZL5...[skipped]
+   Delete everything before “ssh-rsa”, the file should now look like
+   ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDTctyMQwAPXDqlOfZL5...[skipped]
+   
+2. how to get current dir name in linux
+   [atomiqroot@ilgss0994 AtomIQ]$ pwd
+   /storage/gittesting/AtomIQ
+   [atomiqroot@ilgss0994 AtomIQ]$ basename $(pwd) or basename "$PWD"
+   AtomIQ
+   [atomiqroot@ilgss0994 AtomIQ]$
+   
+   WORKAROUND
+   pwd | rev | cut -d '/' -f 1 | rev
+   
+3. copy file from windows to cloudbased linux machine
+   pscp .\ filename root@13.10.23.11:/home/root/
+   
+4. How to change the series of ID allotted to new user
+   
+   
+```
+[atomiqroot@ilgss0919 ~]$ sudo useradd deepak 
+[atomiqroot@ilgss0919 ~]$ id deepak 
+uid=54142(deepak) gid=54142(deepak) groups=54142(deepak) 
+[atomiqroot@ilgss0919 ~]$ sudo useradd deepak 
+useradd: user 'deepak' already exists 
+[atomiqroot@ilgss0919 ~]$ echo $? 
+9 
+[atomiqroot@ilgss0919 ~]$ sudo useradd pankaj 
+[atomiqroot@ilgss0919 ~]$ id pankaj 
+uid=54143(pankaj) gid=54143(pankaj) groups=54143(pankaj)
+
+This is the file where you need to add such modifications.
+[atomiqroot@ilgss0919 ~]$ sudo vi /etc/login.defs
+
+# Min/max values for automatic uid selection in useradd 
+# 
+UID_MIN                  5000 
+UID_MAX                 60000
+```
+
+5. user is not able to delete a file even after as root user. why?
+   because chattr must be implemented on it.
+   
+```
+[atomiqroot@ilgss0919 tmp]$ touch deepak 
+[atomiqroot@ilgss0919 tmp]$ chattr +i deepak 
+chattr: Operation not permitted while setting flags on deepak 
+[atomiqroot@ilgss0919 tmp]$ sudo !! 
+[atomiqroot@ilgss0919 tmp]$ sudo chattr +i deepak
+
+
+[atomiqroot@ilgss0919 tmp]$ sudo rm -rf deepak 
+rm: cannot remove ‘deepak’: Operation not permitted 
+[atomiqroot@ilgss0919 tmp]$ sudo chattr -i deepak 
+[atomiqroot@ilgss0919 tmp]$ sudo rm -rf deepak 
+[atomiqroot@ilgss0919 tmp]$ ls -lrt
+```
+
+	1.  how to know which rmp created any file.
+	   
+```
+[atomiqroot@ilgss0919 docker]$ rpm -qf daemon.json 
+docker-1.13.1-109.gitcccb291.el7_7.x86_64 
+[atomiqroot@ilgss0919 docker]$
+
+[atomiqroot@ilgss0919 ~]$ rpm -fq listOfFiles.list 
+file /home/atomiqroot/listOfFiles.list is not owned by any package 
+[atomiqroot@ilgss0919 ~]$
+```
+
+6. how to check dependencies of any .rpm file
+   
+```
+rpm -qPR <packagefilename>.rpm
+and to install a rpm
+rpm -ivh <package name>.rpm
+
+```
+
+7. rpm vs yum?
+   The main difference between Yum and RPM is that while Yum can only install the packages available in its repository, RPM can install multiple packages with the right file name and . ... Yum stands for Yellowdog Updater Modified. They are packaging managers for RPM-based Linux systems.
+   
+8. how to create softlink and hardlink
+   HARDLINK - 
+   Hardlinks should be on same disk, they cant span across disks
+```
+atomiqroot@ilgss0919 ~]$ ln deepak deeplink 
+[atomiqroot@ilgss0919 ~]$ ls -lrt 
+total 8 
+-rwxrwxr-x. 1 atomiqroot atomiqroot 1885 Nov 18 08:08 clean_environment.sh 
+-rw-rw-r--  1 atomiqroot atomiqroot   38 Dec 23 11:56 listOfFiles.list 
+-rw-rw-r--  2 atomiqroot atomiqroot    0 Feb 12 12:10 deeplink 
+-rw-rw-r--  2 atomiqroot atomiqroot    0 Feb 12 12:10 deepak 
+[atomiqroot@ilgss0919 ~]$ vi deepak 
+[atomiqroot@ilgss0919 ~]$ cat deeplink 
+uuuuuuuuuuuuuu 
+[atomiqroot@ilgss0919 ~]$ cat deepak 
+uuuuuuuuuuuuuu 
+[atomiqroot@ilgss0919 ~]$  ll -i deeplink 
+2118891 -rw-rw-r-- 2 atomiqroot atomiqroot 15 Feb 12 12:14 deeplink 
+[atomiqroot@ilgss0919 ~]$  ll -i deepak 
+2118891 -rw-rw-r-- 2 atomiqroot atomiqroot 15 Feb 12 12:14 deepak 
+[atomiqroot@ilgss0919 ~]$ ln deepak deeplink2 
+[atomiqroot@ilgss0919 ~]$ ll -i deeplink2 
+2118891 -rw-rw-r-- 3 atomiqroot atomiqroot 15 Feb 12 12:14 deeplink2
+if you delete main file, hardlink will still work(because inode num is same)
+```
+SOFTLINK - can  span across diff disk
+```
+[atomiqroot@ilgss0919 ~]$ ln -s deepak soflink1 
+[atomiqroot@ilgss0919 ~]$ ls -lrt 
+total 20 
+-rwxrwxr-x. 1 atomiqroot atomiqroot 1885 Nov 18 08:08 clean_environment.sh 
+-rw-rw-r--  1 atomiqroot atomiqroot   38 Dec 23 11:56 listOfFiles.list 
+-rw-rw-r--  3 atomiqroot atomiqroot   15 Feb 12 12:14 deeplink2 
+-rw-rw-r--  3 atomiqroot atomiqroot   15 Feb 12 12:14 deeplink 
+-rw-rw-r--  3 atomiqroot atomiqroot   15 Feb 12 12:14 deepak 
+lrwxrwxrwx  1 atomiqroot atomiqroot    6 Feb 12 12:18 soflink1 -> deepak 
+[atomiqroot@ilgss0919 ~]$ v
+if you delete main file then softlink will get abondonded 
+(inode number is diff)
+```
+7. what is sticky bit?
+   
+8. how to check ports open on current machnie?
+   
+```
+[atomiqroot@ilgss0919 tmp]$ netstat -tunlp 
+(Not all processes could be identified, non-owned process info 
+ will not be shown, you would have to be root to see it all.) 
+Active Internet connections (only servers) 
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name 
+tcp        0      0 10.236.196.185:2380     0.0.0.0:*               LISTEN      - 
+tcp        0      0 127.0.0.1:2381          0.0.0.0:*               LISTEN      - 
+tcp        0      0 0.0.0.0:111             0.0.0.0:*               LISTEN      - 
+tcp        0      0 127.0.0.1:10257         0.0.0.0:*               LISTEN      -
+```
+
+9. how to check open ports on remote machine?
+   
+```
+to list all the ports open in remote host 
+[root@ilgss0994 ~]# nmap ilgss0254 
+Starting Nmap 6.40 ( http://nmap.org ) at 2022-01-25 20:31 IST 
+Nmap scan report for ilgss0254 (10.236.196.42) 
+Host is up (0.00039s latency). 
+rDNS record for 10.236.196.42: ilgss0254.corp.amdocs.com 
+Not shown: 994 closed ports 
+PORT     STATE SERVICE 
+22/tcp   open  ssh 
+25/tcp   open  smtp 
+111/tcp  open  rpcbind 
+1234/tcp open  hotline 
+7443/tcp open  oracleas-https 
+9100/tcp open  jetdirect 
+MAC Address: 00:50:56:AF:32:2D (VMware) 
+Nmap done: 1 IP address (1 host up) scanned in 1.68 seconds 
+[root@ilgss0994 ~]# 
+to get os related info from a remote server 
+[root@ilgss0994 ~]# nmap -A ilgss0881
+```
+
+9. how to get current disk name
+   
+```
+[atomiqroot@ilgss0919 ~]$ df . 
+Filesystem            1K-blocks   Used Available Use% Mounted on 
+/dev/mapper/vg00-root  12572672 481676  12090996   4% / 
+[atomiqroot@ilgss0919 ~]$
+```
+10. rpm -ql <packaname> to list the files created by rpm
+11. To check release package name
+    
+```
+[root@ilgss0881 ~]# rpm -q --whatprovides redhat-release || rpm -q --whatprovides centos-release || rpm -q --whatprovides cloudlinux-release || rpm -q --whatprovides sl-release || rpm -q --whatprovides fedora-release 
+redhat-release-server-7.8-2.el7.x86_64 
+[root@ilgss0881 ~]#
+```
+
+12. LVM
+    get list of all available disk
+    (you can create 256 lvm in a single volume group)
+    
+
+```
+[root@ilgss0994 ~]# fdisk -l 
+Disk /dev/sdb: 247.0 GB, 246960619520 bytes, 482344960 sectors 
+Units = sectors of 1 * 512 = 512 bytes 
+Sector size (logical/physical): 512 bytes / 512 bytes 
+I/O size (minimum/optimal): 512 bytes / 512 bytes 
+Disk /dev/sda: 96.6 GB, 96636764160 bytes, 188743680 sectors 
+Units = sectors of 1 * 512 = 512 bytes 
+Sector size (logical/physical): 512 bytes / 512 bytes 
+I/O size (minimum/optimal): 512 bytes / 512 bytes 
+Disk label type: dos 
+Disk identifier: 0x00029d67 
+   Device Boot      Start         End      Blocks   Id  System 
+/dev/sda1            2048        6143        2048   83  Linux 
+/dev/sda2   *        6144     1030143      512000   83  Linux 
+/dev/sda3         1030144   188743679    93856768   8e  Linux LVM 
+Disk /dev/mapper/vg00-root: 12.9 GB, 12884901888 bytes, 25165824 sectors 
+Units = sectors of 1 * 512 = 512 bytes 
+Sector size (logical/physical): 512 bytes / 512 bytes 
+I/O size (minimum/optimal): 512 bytes / 512 bytes 
+Disk /dev/mapper/vg00-swap: 2147 MB, 2147483648 bytes, 4194304 sectors 
+Units = sectors of 1 * 512 = 512 bytes 
+Sector size (logical/physical): 512 bytes / 512 bytes 
+I/O size (minimum/optimal): 512 bytes / 512 bytes 
+Disk /dev/mapper/vg00-usr: 4294 MB, 4294967296 bytes, 8388608 sectors 
+Units = sectors of 1 * 512 = 512 bytes 
+Sector size (logical/physical): 512 bytes / 512 bytes 
+I/O size (minimum/optimal): 512 bytes / 512 bytes 
+Disk /dev/mapper/vg01-elasticsearch: 53.7 GB, 53687091200 bytes, 104857600 sectors 
+Units = sectors of 1 * 512 = 512 bytes 
+Sector size (logical/physical): 512 bytes / 512 bytes 
+I/O size (minimum/optimal): 512 bytes / 512 bytes 
+Disk /dev/mapper/vg01-atomiq: 53.7 GB, 53687091200 bytes, 104857600 sectors 
+Units = sectors of 1 * 512 = 512 bytes 
+Sector size (logical/physical): 512 bytes / 512 bytes 
+I/O size (minimum/optimal): 512 bytes / 512 bytes 
+Disk /dev/mapper/vg01-docker_lib: 85.9 GB, 85899345920 bytes, 167772160 sectors 
+Units = sectors of 1 * 512 = 512 bytes 
+Sector size (logical/physical): 512 bytes / 512 bytes 
+I/O size (minimum/optimal): 512 bytes / 512 bytes 
+Disk /dev/mapper/vg01-users: 21.5 GB, 21474836480 bytes, 41943040 sectors 
+Units = sectors of 1 * 512 = 512 bytes 
+Sector size (logical/physical): 512 bytes / 512 bytes 
+I/O size (minimum/optimal): 512 bytes / 512 bytes 
+Disk /dev/mapper/vg01-storage: 32.0 GB, 31998345216 bytes, 62496768 sectors 
+Units = sectors of 1 * 512 = 512 bytes 
+Sector size (logical/physical): 512 bytes / 512 bytes 
+I/O size (minimum/optimal): 512 bytes / 512 bytes 
+Disk /dev/mapper/vg00-var: 33.3 GB, 33285996544 bytes, 65011712 sectors 
+Units = sectors of 1 * 512 = 512 bytes 
+Sector size (logical/physical): 512 bytes / 512 bytes 
+I/O size (minimum/optimal): 512 bytes / 512 bytes 
+Disk /dev/mapper/vg00-tmp: 5368 MB, 5368709120 bytes, 10485760 sectors 
+Units = sectors of 1 * 512 = 512 bytes 
+Sector size (logical/physical): 512 bytes / 512 bytes 
+I/O size (minimum/optimal): 512 bytes / 512 bytes 
+Disk /dev/mapper/vg00-opt: 10.7 GB, 10737418240 bytes, 20971520 sectors 
+Units = sectors of 1 * 512 = 512 bytes 
+Sector size (logical/physical): 512 bytes / 512 bytes 
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+```
+
+12. 
+```
+
+Contents
+- 1
+  RPM-based
+	- 1.1
+	  CentOS/RHEL-based
+	- 1.2
+	  Fedora-based
+	- 1.3
+	  openSUSE-based
+	- 1.4
+	  urpmi-based
+	- 1.5
+	  apt-rpm based
+	- 1.6
+	  Independent RPM distributions
+- 2
+  DEB-based
+	- 2.1
+	  Debian-based
+		- 2.1.1
+		  Debian-based (security-oriented)
+	- 2.2
+	  MEPIS-based
+	- 2.3
+	  Knoppix-based
+	- 2.4
+	  Ubuntu-based
+		- 2.4.1
+		  Official distributions
+		- 2.4.2
+		  Discontinued official distributions
+		- 
+```
